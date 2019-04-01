@@ -30,7 +30,7 @@ public class LockFreeStack<T> {
 
 
     private AtomicReference<Node> head;
-    private AtomicInteger numOps;
+    protected AtomicInteger numOps;
     private static final int MIN_SLEEP = 2; // min sleep time in ms
     private static final int MAX_SLEEP = 20000; // max sleep time in ms
 

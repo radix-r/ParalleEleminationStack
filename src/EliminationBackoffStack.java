@@ -22,129 +22,65 @@
 
 
 import java.util.EmptyStackException;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-public class EliminationBackoffStack<T> {
+public class EliminationBackoffStack<T> extends LockFreeStack<T>{
 
-
-    private AtomicReference<Node> head;
-    private AtomicInteger numOps;
-    private static final int MIN_SLEEP = 2; // min sleep time in ms
-    private static final int MAX_SLEEP = 20000; // max sleep time in ms
-
-
-
-    class Node<T>{
-        public T val;
-        public Node next;
-
-        public Node(T val){
-            this.val = val;
-            next = null;
-
+    static final int capacity = 10; // Magic number
+    EliminationArray<T> eliminationArray = new EliminationArray<T>(capacity);
+    static ThreadLocal<RangePolicy> policy = new ThreadLocal<RangePolicy>(){
+        protected synchronized RangePolicy initialValue(){
+            return new RangePolicy(capacity);
         }
-    }
+    };
 
-    public EliminationBackoffStack(){
-       this.numOps = new AtomicInteger(0);
-       this.head = new AtomicReference<Node>(null);
-    }
-
-
-
-    public static void main(String args[]){
-        EliminationBackoffStack<Integer> LFS = new EliminationBackoffStack<Integer>();
-
-        LFS.push(10);
-
-        System.out.println(LFS.pop());
-
-
-    }
-
-
-
-
-    /**
-     * Exponential backoff. take peramiter n, how many times thread has had to back off
-     * sleeps for (MIN_SLEEP^n) + small rand milliseconds
-    * */
-    private void backoff(int n){
-        int sleepMillSec = (int)(Math.pow(MIN_SLEEP,n) + Math.random()*10);
-        if (sleepMillSec > MAX_SLEEP){
-            sleepMillSec = MAX_SLEEP;
-        }
-
-        try{
-            Thread.sleep(sleepMillSec);
-        }catch(InterruptedException e){
-            Thread.currentThread().interrupt();  // set interrupt flag
-            System.out.println("Wait interrupted.");
-        }
-
-
-    }
-
-    protected boolean tryPush(Node n){
-        Node oldHead = head.get();
-        n.next = oldHead;
-        return head.compareAndSet(oldHead,n);
-    }
-
-    public void push(T p){
-
-        Node n = new Node(p);
-        int tryCount = 0;
+    @Override
+    public void push(T value){
+        RangePolicy rangePolicy = policy.get();
+        Node<T> node = new Node<T>(value);
         while(true){
-            if(tryPush(n)){
-                // push successful
-                numOps.getAndIncrement();
+            if (tryPush(node)){
+                // successful push
                 return;
-            }else{
-                backoff(tryCount++);
+            } else try{
+                T otherValue = eliminationArray.visit(value, rangePolicy.getRange());
+
+                if (otherValue == null){
+                    // matching pop found
+                    // record elem success
+                    numOps.getAndIncrement();
+                    return;
+
+                }
+            } catch (TimeoutException ex){
+                // record timeout
             }
-        }
 
-    }
-
-    protected Node tryPop()throws EmptyStackException{
-
-        Node oldHead = head.get();
-
-        if (oldHead == null){
-            //lock.unlock();
-            throw new EmptyStackException();
-        }
-
-        Node newHead = oldHead.next;
-
-        if(head.compareAndSet(oldHead,newHead)){
-            return oldHead;
-        }else{
-            return null;
         }
     }
 
-    public T pop() throws EmptyStackException {
-
-        int tryCount = 0;
-        while(true){
-            Node returnNode = tryPop();
+    @Override
+    public T pop() throws EmptyStackException{
+        RangePolicy rangePolicy = policy.get();
+        while (true){
+            Node<T> returnNode = tryPop();
             if (returnNode != null){
-                numOps.getAndIncrement();
-                return (T)returnNode.val;
-            }else{
-                backoff(tryCount++);
+                return returnNode.val;
+            }else try {
+                T otherValue =eliminationArray.visit(null,rangePolicy.getRange());
+                if (otherValue != null){
+                    // successful elimination
+                    numOps.getAndIncrement();
+                    return otherValue;
+                }
+            }catch(TimeoutException ex){
+                // timeout
             }
+
         }
-
-
-    }
-
-    public int getNumOps(){
-        return numOps.get();
     }
 
 
