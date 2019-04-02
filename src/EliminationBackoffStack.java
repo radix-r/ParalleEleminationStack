@@ -31,11 +31,20 @@ public class EliminationBackoffStack<T> extends LockFreeStack<T>{
 
     static final int capacity = 10; // Magic number
     EliminationArray<T> eliminationArray = new EliminationArray<T>(capacity);
-    static ThreadLocal<RangePolicy> policy = new ThreadLocal<RangePolicy>(){
+    static ThreadLocal<RangePolicy> policy = new ThreadLocal<>(){
         protected synchronized RangePolicy initialValue(){
             return new RangePolicy(capacity);
         }
     };
+
+
+    public static void main(String[] args){
+
+
+
+        // threads
+
+    }
 
     @Override
     public void push(T value){
@@ -51,12 +60,14 @@ public class EliminationBackoffStack<T> extends LockFreeStack<T>{
                 if (otherValue == null){
                     // matching pop found
                     // record elem success
+                    rangePolicy.recordEleminationSuccess();
                     numOps.getAndIncrement();
                     return;
 
                 }
             } catch (TimeoutException ex){
                 // record timeout
+                rangePolicy.recordEliminationTimeout();
             }
 
         }

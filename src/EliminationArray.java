@@ -18,7 +18,7 @@ public class EliminationArray<T> {
     }
 
     public T visit(T value, int range) throws TimeoutException{
-        int slot = random.nextInt(range);
+        int slot = random.nextInt(range+1);
         return (exchanger[slot].exchange(value,DURATION, TimeUnit.MILLISECONDS));
     }
 
