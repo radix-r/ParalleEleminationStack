@@ -127,11 +127,17 @@ public class LockFreeStack<T> {
         }
     }
 
-    public T pop() throws EmptyStackException {
+    public T pop() {
 
         int tryCount = 0;
         while(true){
-            Node returnNode = tryPop();
+            Node returnNode= null;
+            try{
+                returnNode = tryPop();
+            }catch (EmptyStackException e){
+                backoff(tryCount++);
+                continue;
+            }
             if (returnNode != null){
                 numOps.getAndIncrement();
                 return (T)returnNode.val;

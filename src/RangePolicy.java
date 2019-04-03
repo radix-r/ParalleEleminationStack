@@ -20,7 +20,7 @@ public class RangePolicy {
 
     public int getRange(){
         // want it to return 0 to range
-        return rand.nextInt(range+1);
+        return range;
     }
 
     public void recordEleminationSuccess(){

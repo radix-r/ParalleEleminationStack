@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class EliminationBackoffStack<T> extends LockFreeStack<T>{
 
-    static final int capacity = 10; // Magic number
+    static final int capacity = 100; // Magic number
     EliminationArray<T> eliminationArray = new EliminationArray<T>(capacity);
     static ThreadLocal<RangePolicy> policy = new ThreadLocal<>(){
         protected synchronized RangePolicy initialValue(){
@@ -75,10 +75,16 @@ public class EliminationBackoffStack<T> extends LockFreeStack<T>{
     }
 
     @Override
-    public T pop() throws EmptyStackException{
+    public T pop() {
         RangePolicy rangePolicy = policy.get();
         while (true){
-            Node<T> returnNode = tryPop();
+            Node<T> returnNode = null;
+            try {
+                returnNode = tryPop();
+            }catch(EmptyStackException e){
+                returnNode = null;
+            }
+
             if (returnNode != null){
                 numOps.getAndIncrement();
                 return returnNode.val;

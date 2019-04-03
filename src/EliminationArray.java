@@ -4,7 +4,7 @@ import java.util.concurrent.TimeoutException;
 
 public class EliminationArray<T> {
 
-    private static final int DURATION = 100; // how avoid magic number?
+    private static final int DURATION = 10; // // how avoid magic number?
     LockFreeExchanger<T>[] exchanger;
     Random random;
 
@@ -19,7 +19,7 @@ public class EliminationArray<T> {
 
     public T visit(T value, int range) throws TimeoutException{
         int slot = random.nextInt(range+1);
-        return (exchanger[slot].exchange(value,DURATION, TimeUnit.MILLISECONDS));
+        return (exchanger[slot].exchange(value,DURATION, TimeUnit.MICROSECONDS));
     }
 
 }
