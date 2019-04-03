@@ -14,7 +14,7 @@ public class LineChart_AWT extends ApplicationFrame {
         super(applicationTitle);
         JFreeChart lineChart = ChartFactory.createLineChart(
                 chartTitle,
-                "Number of threads", "Time to complete",
+                "Number of threads", "Time to complete (ms)",
                 createDataset(data),
                 PlotOrientation.VERTICAL,
                 true, true, false);
@@ -29,7 +29,7 @@ public class LineChart_AWT extends ApplicationFrame {
         for (long[] datum : data) {
 
             // time to complete operations , "Time to complete" , Number of threads used
-            dataset.addValue(datum[0], "Time to complete", Long.toString(datum[1]));
+            dataset.addValue(datum[0], "EBS", Long.toString(datum[1]));
 
         }
         return dataset;

@@ -25,7 +25,7 @@ public class EBSTest {
 
 
         public void runTests() {
-            try {
+            //try {
                 List<long[]> data = new ArrayList<>();
 
 
@@ -33,7 +33,7 @@ public class EBSTest {
                 // test from 0 to 32 threads
                 for (int i = 1; i < 32; i++) {
 
-                    // init new Backoff stack
+                    // re init new Backoff stack
                     stringEBS = new EliminationBackoffStack<>();
 
 
@@ -45,16 +45,17 @@ public class EBSTest {
 
                     // run 15 pushes, 15 pops, and 2 numOps
                     for (int j = 0; j < 15; j++) {
-                        pool.execute(new Push(String.format("push%d", i), Integer.toString(i), 100));
-                        pool.execute(new Pop(String.format("Pop%d", i), 100));
+                        pool.execute(new Push(stringEBS, String.format("push%d", j), Integer.toString(j), 100));
+                        pool.execute(new Pop(stringEBS, String.format("Pop%d", j), 100));
 
                     }
 
                     for (int k = 0; k < 2; k++) {
-                        pool.execute(new NumOps(String.format("numOps%d", i), 100));
+                        pool.execute(new NumOps(stringEBS, String.format("numOps%d", k), 100));
                     }
 
-                    pool.awaitTermination(1, TimeUnit.MINUTES);
+                    pool.shutdown();
+                    //pool.awaitTermination(1, TimeUnit.MINUTES);
 
 
                     long endTime = System.nanoTime();
@@ -71,34 +72,36 @@ public class EBSTest {
 
 
 
-                String title = String.format("Time for %d Operations 15/32 push, 15/32 pop, 2/32 numOps",32*1000);
+                String title = String.format("Time for %d Operations 15/32 push, 15/32 pop, 2/32 numOps",32*100);
                 LineChart_AWT lineChart= new LineChart_AWT("Line Graph",title, data);
                 lineChart.pack();
                 RefineryUtilities.centerFrameOnScreen(lineChart);
                 lineChart.setVisible(true);
 
-            }catch(InterruptedException ex){
+           /* }catch(InterruptedException ex){
                 ex.printStackTrace();
-            }
+            }*/
         }
 
 
     }
 
-    static class NumOps implements Runnable {
+    static class NumOps<T> implements Runnable {
 
         private String name;
         private int n;
+        private EliminationBackoffStack<T> EBS;
 
-        public NumOps(String name, int n) {
+        public NumOps(EliminationBackoffStack<T> EBS,String name, int n) {
 
+            this.EBS = EBS;
             this.n = n;
             this.name = name;
         }
 
         private void NumOpsNTimes(int n) {
             for (int i = 0; i < n; i++) {
-                System.out.println(stringEBS.getNumOps());
+                System.out.println("NumOps: "+ Integer.toString(EBS.getNumOps()));
             }
         }
 
@@ -113,16 +116,18 @@ public class EBSTest {
         private String data;
         private String name;
         private int n;
+        private EliminationBackoffStack<String> EBS;
 
-        public Push(String name, String data, int n) {
+        public Push(EliminationBackoffStack<String > EBS,String name, String data, int n) {
             this.data = data;
             this.n = n;
             this.name = name;
+            this.EBS = EBS;
         }
 
         private void pushNTimes(String data, int n) {
             for (int i = 0; i < n; i++) {
-                stringEBS.push(data);
+                EBS.push(data);
             }
         }
 
@@ -136,16 +141,18 @@ public class EBSTest {
 
         private String name;
         private int n;
+        private EliminationBackoffStack<String> EBS;
 
-        public Pop(String name, int n) {
+        public Pop(EliminationBackoffStack<String> EBS,String name, int n) {
 
             this.n = n;
             this.name = name;
+            this.EBS = EBS;
         }
 
         private void popNTimes(int n) {
             for (int i = 0; i < n; i++) {
-                System.out.println(stringEBS.pop());
+                System.out.println("Pop: "+EBS.pop());
             }
         }
 

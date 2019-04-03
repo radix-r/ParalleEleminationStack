@@ -53,6 +53,7 @@ public class EliminationBackoffStack<T> extends LockFreeStack<T>{
         while(true){
             if (tryPush(node)){
                 // successful push
+                numOps.getAndIncrement();
                 return;
             } else try{
                 T otherValue = eliminationArray.visit(value, rangePolicy.getRange());
@@ -79,16 +80,19 @@ public class EliminationBackoffStack<T> extends LockFreeStack<T>{
         while (true){
             Node<T> returnNode = tryPop();
             if (returnNode != null){
+                numOps.getAndIncrement();
                 return returnNode.val;
             }else try {
                 T otherValue =eliminationArray.visit(null,rangePolicy.getRange());
                 if (otherValue != null){
                     // successful elimination
                     numOps.getAndIncrement();
+                    rangePolicy.recordEleminationSuccess();
                     return otherValue;
                 }
             }catch(TimeoutException ex){
                 // timeout
+                rangePolicy.recordEliminationTimeout();
             }
 
         }
